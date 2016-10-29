@@ -4,24 +4,25 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Forms;
-using System.Windows.Input;
 using System.Windows.Threading;
 using Application = System.Windows.Application;
-using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace Notify
 {
     public partial class MainWindow
     {
         private readonly DispatcherTimer _timer;
+        private readonly DispatcherTimer _breakTimer;
         private NotifyIcon _notifyIcon;
         private int _time;
+        private int _breakTime = 0;
+        private int _breakCount = 0;
 
         public MainWindow()
         {
-            Process proc = Process.GetCurrentProcess();
-            int count = Process.GetProcesses().Where(p =>
-                             p.ProcessName == proc.ProcessName).Count();
+            var proc = Process.GetCurrentProcess();
+            var count = Process.GetProcesses().Count(p => p.ProcessName == proc.ProcessName);
+
             if (count > 1)
             {
                 System.Windows.MessageBox.Show("Already an instance is running...");
@@ -33,10 +34,12 @@ namespace Notify
             CenterWindow();
             InitializeNotifyIcon();
 
-            TimeLabel.Content = 0;
+            TimeLabel.Content = "25:00";
 
             _timer = new DispatcherTimer { Interval = new TimeSpan(0, 0, 1) };
+            _breakTimer = new DispatcherTimer { Interval = new TimeSpan(0, 0, 1) };
             _timer.Tick += Timer_Tick;
+            _breakTimer.Tick += BreakTimer_Tick;
         }
 
         private void CenterWindow()
@@ -74,8 +77,8 @@ namespace Notify
             var open = new MenuItem("Open Notify");
             open.Click += (sender, e) => { WindowState = WindowState.Normal; };
 
-            var stop = new MenuItem("Stop Notify");
-            stop.Click += StopButton_Click;
+            var stop = new MenuItem("Reset Notify");
+            stop.Click += ResetButton_Click;
             stop.Enabled = false;
 
             var separator = new MenuItem("-");
@@ -92,28 +95,6 @@ namespace Notify
             return menu;
         }
 
-        private void DeleteNumber()
-        {
-            if ((int)TimeLabel.Content < 10)
-            {
-                TimeLabel.Content = 0;
-                StartButton.IsEnabled = false;
-            }
-            else
-                TimeLabel.Content = (int)TimeLabel.Content / 10;
-        }
-
-        private void AddNumber(int number)
-        {
-            if (TimeLabel.Content.ToString().Length >= 2 || (TimeLabel.Content.Equals(0) && number >= 6) ||
-                (TimeLabel.Content.Equals(0) && number.Equals(0)))
-                return;
-
-            TimeLabel.Content = (int)TimeLabel.Content * 10 + number;
-            StartButton.IsEnabled = true;
-            StartButton.IsDefault = true;
-        }
-
         private void Timer_Tick(object sender, EventArgs e)
         {
             if (_time > 0)
@@ -128,12 +109,19 @@ namespace Notify
             else
             {
                 _timer.Stop();
-                DisableStop();
+                DisableReset();
                 Notify();
             }
         }
 
-        private void DisableStop()
+        private void BreakTimer_Tick(object sender, EventArgs e)
+        {
+            _breakTime++;
+            string time = $"{_breakCount} break {_breakTime / 60}:{_breakTime % 60:D2}";
+            Dispatcher.Invoke(() => BreakLabel.Content = time);
+        }
+
+        private void DisableReset()
         {
             _notifyIcon.ContextMenu.MenuItems[1].Enabled = false;
         }
@@ -147,89 +135,52 @@ namespace Notify
         {
             Dispatcher.Invoke(() =>
             {
-                StopButton.IsEnabled = false;
-                TimeLabel.Content = 0;
+                TimeLabel.Content = "25:00";
+                StartButton.IsEnabled = true;
+                StartButton.Content = "Continue";
             });
+
+            _breakCount++;
+            _breakTime = 0;
+            _breakTimer.Start();
 
             _notifyIcon.Text = Properties.Resources.App_Name;
             _notifyIcon.ShowBalloonTip(5000, Properties.Resources.App_Name, "Time is up", ToolTipIcon.Info);
+
+            WindowState = WindowState.Normal;
+            Activate();
         }
 
-        private void StopButton_Click(object sender, EventArgs e)
+        private void ResetButton_Click(object sender, EventArgs e)
         {
             _timer.Stop();
-            DisableStop();
-            StopButton.IsEnabled = false;
-            TimeLabel.Content = 0;
+            _breakTimer.Stop();
+            _breakTime = 0;
+            _breakCount = 0;
+            BreakLabel.Content = "";
+            DisableReset();
+            StartButton.IsEnabled = true;
+            StartButton.Content = "Start";
+            ResetButton.IsEnabled = false;
+            TimeLabel.Content = "25:00";
             _notifyIcon.Text = Properties.Resources.App_Name;
         }
 
         private void StartButton_Click(object sender, RoutedEventArgs e)
         {
             StartButton.IsEnabled = false;
-            StopButton.IsEnabled = true;
-            StopButton.IsDefault = true;
+            ResetButton.IsEnabled = true;
+            ResetButton.IsDefault = true;
             EnableStop();
 
-            _time = (int)TimeLabel.Content * 60;
-            TimeLabel.Content += ":00";
+            _time = 60 * 25;
 
+            _breakTimer.Stop();
             _timer.Start();
 
+            BreakLabel.Content = "";
+
             WindowState = WindowState.Minimized;
-        }
-
-        private void MainWindow_OnKeyDown(object sender, KeyEventArgs e)
-        {
-            if (_timer.IsEnabled)
-                return;
-
-            switch (e.Key)
-            {
-                case Key.NumPad0:
-                case Key.D0:
-                    AddNumber(0);
-                    break;
-                case Key.NumPad1:
-                case Key.D1:
-                    AddNumber(1);
-                    break;
-                case Key.NumPad2:
-                case Key.D2:
-                    AddNumber(2);
-                    break;
-                case Key.NumPad3:
-                case Key.D3:
-                    AddNumber(3);
-                    break;
-                case Key.NumPad4:
-                case Key.D4:
-                    AddNumber(4);
-                    break;
-                case Key.NumPad5:
-                case Key.D5:
-                    AddNumber(5);
-                    break;
-                case Key.NumPad6:
-                case Key.D6:
-                    AddNumber(6);
-                    break;
-                case Key.NumPad7:
-                case Key.D7:
-                    AddNumber(7);
-                    break;
-                case Key.NumPad8:
-                case Key.D8:
-                    AddNumber(8);
-                    break;
-                case Key.NumPad9:
-                case Key.D9:
-                    AddNumber(9);
-                    break;
-                case Key.Back:
-                    DeleteNumber();
-                    break;
-            }
         }
 
         private void MainWindow_OnStateChanged(object sender, EventArgs e)

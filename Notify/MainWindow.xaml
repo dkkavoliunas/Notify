@@ -7,11 +7,11 @@
         Title="Notify" Height="130" Width="365" 
         StateChanged="MainWindow_OnStateChanged"
         ResizeMode="CanMinimize"
-        Closed="MainWindow_OnClosed"
-        KeyDown="MainWindow_OnKeyDown">
+        Closed="MainWindow_OnClosed">
     <Grid Margin="0,0,0.2,0.2">
-        <Button x:Name="StartButton" Content="Start" IsEnabled="False" HorizontalAlignment="Left" Height="40" Margin="170,30,0,0" VerticalAlignment="Top" Width="70" Click="StartButton_Click" />
-        <Button x:Name="StopButton" Content="Stop" IsEnabled="False" HorizontalAlignment="Left" Height="40" Margin="260,30,0,0" VerticalAlignment="Top" Width="70" Click="StopButton_Click"/>
+        <Button x:Name="StartButton" Content="Start" IsEnabled="True" HorizontalAlignment="Left" Height="40" Margin="170,30,0,0" VerticalAlignment="Top" Width="70" Click="StartButton_Click" />
+        <Button x:Name="ResetButton" Content="Reset" IsEnabled="False" HorizontalAlignment="Left" Height="40" Margin="260,30,0,0" VerticalAlignment="Top" Width="70" Click="ResetButton_Click"/>
         <Label x:Name="TimeLabel" FontSize="40" HorizontalContentAlignment="Right" HorizontalAlignment="Left" Margin="7,15,0,0" VerticalAlignment="Top" Height="70" Width="130"/>
+        <Label x:Name="BreakLabel" HorizontalAlignment="Left" Padding="0" VerticalAlignment="Top" Width="130" Height="15" Margin="7,0,0,0"/>
     </Grid>
 </Window>
